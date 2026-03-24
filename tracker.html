@@ -248,6 +248,7 @@ h1 { font-size: 26px; font-weight: 800; }
 // ─── CONFIG ────────────────────────────────────────────────
 const KEY      = 'tennis_v4_6_data';   // shared with index.html
 const OLD_KEY  = 'tennis_v4_5_stable_final_data';
+const DB_URL   = 'https://script.google.com/macros/s/AKfycbxG6Gk3whJHW5Ek4DSyW1gZnIM--euOV5ZQp7n7c8rv4Ja6H28Jwh8nC4Vbj-gAHg88IQ/exec';
 const MAX_H    = 10;
 const PER_PAGE = 10;
 
@@ -280,8 +281,10 @@ const el = {
 };
 
 // ─── INIT ────────────────────────────────────────────────────
-function init() {
-  load();
+async function init() {
+  document.body.style.opacity = '0.5';
+  await load();
+  document.body.style.opacity = '1';
   viewPhase = data.currentPhaseStart;
   updateClock();
   setDefaultDate();
@@ -329,8 +332,20 @@ function nextTuesdayFrom(dateStr) {
   return isoDate(d);
 }
 
-function load() {
-  let raw = localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY);
+async function load() {
+  let raw = null;
+  try {
+    const res = await fetch(DB_URL);
+    const cloudRaw = await res.json();
+    if(cloudRaw) raw = typeof cloudRaw === 'string' ? cloudRaw : JSON.stringify(cloudRaw);
+  } catch(e) {
+    console.error('Cloud load failed, using local', e);
+  }
+  
+  if(!raw) {
+    raw = localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY);
+  }
+
   if(raw) {
     try {
       const parsed = JSON.parse(raw);
@@ -357,9 +372,16 @@ function load() {
     data.currentPhaseStart = todayStr();
     data.phases = [data.currentPhaseStart];
   }
+  localStorage.setItem(KEY, JSON.stringify(data)); // cache locally
 }
 
-function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+function save() { 
+  localStorage.setItem(KEY, JSON.stringify(data)); 
+  fetch(DB_URL, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }).catch(e=>console.error("Cloud sync failed", e));
+}
 
 function retagAll() {
   const sp = [...new Set(data.phases)].sort();
@@ -534,9 +556,11 @@ function logCancel() {
 
 // ─── RESET ALL ────────────────────────────────────────────
 function resetAllData() {
-  openModal('警告：清空全部紀錄', '這將會刪除所有期數與所有的上課紀錄，且無法復原！\n確定要重新記錄嗎？', () => {
+  openModal('警告：清空全部紀錄', '這將會刪除所有期數與所有的上課紀錄，包含雲端也會清空！\n確定要重新記錄嗎？', async () => {
     localStorage.removeItem(KEY);
     localStorage.removeItem(OLD_KEY);
+    document.body.style.opacity = '0.5';
+    await fetch(DB_URL, { method: 'POST', body: JSON.stringify(null) }).catch(e=>console.error(e));
     location.reload();
   });
 }
