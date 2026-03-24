@@ -65,7 +65,8 @@ h1 { font-size: 26px; font-weight: 800; }
 
 /* SETTLE BUTTON */
 .settle-btn { width: 100%; margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--muted); border-radius: 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-.settle-btn:hover { background: rgba(192,215,37,0.08); border-color: var(--primary); color: var(--primary); }
+.settle-btn:hover:not(:disabled) { background: rgba(192,215,37,0.08); border-color: var(--primary); color: var(--primary); }
+.settle-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* HISTORY */
 .hist-header { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 10px; border-top: 1px solid var(--border); padding-top: 14px; }
@@ -101,6 +102,7 @@ h1 { font-size: 26px; font-weight: 800; }
 .cancel-link { width: 100%; background: none; border: none; color: var(--muted); font-size: 12px; margin-top: 12px; cursor: pointer; text-decoration: underline; font-family: inherit; }
 
 /* MODAL */
+.hidden { display: none !important; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
 .modal.hidden { display: none; }
 .modal-box { width: 100%; max-width: 360px; background: #0F172A; border: 1px solid var(--primary); border-radius: 22px; padding: 24px; box-shadow: 0 0 40px rgba(192,215,37,0.15); }
@@ -138,6 +140,7 @@ h1 { font-size: 26px; font-weight: 800; }
     <div class="phase-row">
       <label>課程期數：</label>
       <select id="phase-selector"><option value="">載入中...</option></select>
+      <button class="icon-btn" id="btn-add-phase" title="新增過去期數">＋ 新增期數</button>
     </div>
 
     <!-- Term start date (editable only for current phase) -->
@@ -200,6 +203,23 @@ h1 { font-size: 26px; font-weight: 800; }
     <button class="cancel-link" id="btn-cancel">今日課程取消</button>
   </div>
 
+  <!-- GLOBAL HISTORY LOG -->
+  <div class="card" id="global-card">
+    <div class="hist-header" style="align-items: center;">
+      <h3>全部上課紀錄 Log</h3>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="hist-count" id="global-hist-count"></span>
+        <button class="icon-btn" id="btn-reset-all" style="color:var(--danger); border-color:rgba(239,68,68,0.3); padding:4px 8px; font-size:10px;">🗑️ 重新記錄 (清空)</button>
+      </div>
+    </div>
+    <div class="hist-list" id="global-hist-list"><p class="empty-msg">尚無紀錄</p></div>
+    <div class="pager hidden" id="global-pager">
+      <button class="page-btn" id="gp-prev">←</button>
+      <span id="gp-text" style="font-size:12px; font-weight:700;">1 / 1</span>
+      <button class="page-btn" id="gp-next">→</button>
+    </div>
+  </div>
+
   <p style="text-align:center;font-size:10px;color:rgba(148,163,184,0.3);margin-top:20px;">
     Tennis Tracker v5 · localStorage
   </p>
@@ -235,6 +255,7 @@ const PER_PAGE = 10;
 let data = { currentPhaseStart:null, phases:[], history:[], courtDefault:'場地1', remarkSchedule:{} };
 let viewPhase = null;   // which phase the user is currently viewing (local, not saved)
 let page = 1;
+let globalPage = 1;
 let pendingCB = null;
 
 // ─── DOM ────────────────────────────────────────────────────
@@ -246,9 +267,12 @@ const el = {
   progFill:$('prog-fill'), progDesc:$('prog-desc'), alertZone:$('alert-zone'),
   btnSettle:$('btn-settle'), histList:$('hist-list'), histCount:$('hist-count'),
   pager:$('pager'), pPrev:$('p-prev'), pNext:$('p-next'), pText:$('p-text'),
+  globalHistList:$('global-hist-list'), globalHistCount:$('global-hist-count'),
+  globalPager:$('global-pager'), gpPrev:$('gp-prev'), gpNext:$('gp-next'), gpText:$('gp-text'),
+  btnResetAll:$('btn-reset-all'),
   formCard:$('form-card'), inpDate:$('inp-date'), inpNote:$('inp-note'),
   autofillIcon:$('autofill-icon'), btnAdd:$('btn-add'), btnCancel:$('btn-cancel'),
-  btnImport:$('btn-import'), btnCourt:$('btn-court'),
+  btnImport:$('btn-import'), btnCourt:$('btn-court'), btnAddPhase:$('btn-add-phase'),
   modal:$('modal'), mTitle:$('m-title'), mBody:$('m-body'),
   mInputWrap:$('m-input-wrap'), mInput:$('m-input'),
   mTextareaWrap:$('m-textarea-wrap'), mTextarea:$('m-textarea'),
@@ -269,8 +293,12 @@ function init() {
   el.btnCancel.onclick = logCancel;
   el.btnImport.onclick = openImport;
   el.btnCourt.onclick = editCourt;
+  el.btnAddPhase.onclick = addPastPhase;
+  el.btnResetAll.onclick = resetAllData;
   el.pPrev.onclick = () => { if(page>1){page--;render();} };
   el.pNext.onclick = () => { if(page<totalPages()){page++;render();} };
+  el.gpPrev.onclick = () => { if(globalPage>1){globalPage--;renderGlobalHistory();} };
+  el.gpNext.onclick = () => { if(globalPage<Math.max(1, Math.ceil(data.history.length/PER_PAGE))){globalPage++;renderGlobalHistory();} };
   el.mOk.onclick = () => { if(pendingCB) pendingCB(); closeModal(); };
   el.mCancel.onclick = closeModal;
 
@@ -321,6 +349,7 @@ function load() {
         if(!data.phases.includes(data.currentPhaseStart)) data.phases.push(data.currentPhaseStart);
         data.phases.sort();
       }
+      sortHistory(); // Ensure loaded records are sorted
       // Tag untagged records
       retagAll();
     } catch(e){}
@@ -339,6 +368,13 @@ function retagAll() {
     let assigned = sp[0];
     for(const p of sp) { if(p<=item.fullDate) assigned=p; }
     item.phaseStart = assigned;
+  });
+}
+
+function sortHistory() {
+  data.history.sort((a,b) => {
+    if(a.fullDate === b.fullDate) return b.createdAt - a.createdAt;
+    return b.fullDate.localeCompare(a.fullDate);
   });
 }
 
@@ -473,7 +509,9 @@ function addRecord() {
     type:'checkin', hours:h, note:el.inpNote.value.trim(),
     phaseStart:data.currentPhaseStart, createdAt:Date.now()
   });
-  page=1; save();
+  sortHistory();
+  retagAll(); // auto-assign to correct phase by fullDate
+  page=1; globalPage=1; save();
   // Switch view to current phase so user sees their new record
   if(viewPhase!==data.currentPhaseStart){ viewPhase=data.currentPhaseStart; }
   render();
@@ -489,7 +527,42 @@ function logCancel() {
     type:'cancel', hours:0, note:el.inpNote.value.trim()||'課程取消',
     phaseStart:data.currentPhaseStart, createdAt:Date.now()
   });
-  page=1; save(); render();
+  sortHistory();
+  retagAll();
+  page=1; globalPage=1; save(); render();
+}
+
+// ─── RESET ALL ────────────────────────────────────────────
+function resetAllData() {
+  openModal('警告：清空全部紀錄', '這將會刪除所有期數與所有的上課紀錄，且無法復原！\n確定要重新記錄嗎？', () => {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(OLD_KEY);
+    location.reload();
+  });
+}
+
+// ─── ADD PAST PHASE ───────────────────────────────────────
+function addPastPhase() {
+  openModal('新增過去期數',
+    '請輸入過去期的起始日期：\n\n建立後可切換為該期，在下方填入當期日期補入紀錄。\n系統會自動依日期對正期次。',
+    () => {
+      const val = el.mInput.value.trim();
+      if(!val || !/^\d{4}-\d{2}-\d{2}$/.test(val)) return;
+      if(val >= data.currentPhaseStart) {
+        alert(`❌ 過去期起始日必須早於本期（${fmtLong(data.currentPhaseStart)}）。`);
+        return;
+      }
+      if(data.phases.includes(val)) {
+        alert(`❌ ${fmtLong(val)} 已屬於現有期數。`);
+        return;
+      }
+      data.phases.push(val);
+      data.phases = [...new Set(data.phases)].sort();
+      retagAll();
+      viewPhase = val; // switch view to the new past phase
+      page = 1;
+      save(); render();
+    }, 'date', '');
 }
 
 // ─── SETTLE ────────────────────────────────────────────────
@@ -575,10 +648,8 @@ function render() {
   }
 
   // Settlement button
-  el.btnSettle.classList.toggle('hidden', !isCurrent);
-  // Form card — always visible, records always go to current phase
-  // (even if viewing a past phase, user can still add records to current)
-
+  el.btnSettle.disabled = !isCurrent;
+  
   // History list
   const recs = phaseRecords(viewPhase);
   el.histCount.textContent = `${recs.length} 筆`;
@@ -604,6 +675,38 @@ function render() {
           ${i.note?`<div class="hist-note">📝 ${i.note}</div>`:''}
         </div>
         <button class="del-btn" onclick="askDelete('${i.id}')">🗑️</button>
+      </div>
+    `).join('');
+  }
+
+  renderGlobalHistory();
+}
+
+function renderGlobalHistory() {
+  const allRecs = data.history;
+  el.globalHistCount.textContent = `共 ${allRecs.length} 筆`;
+  const tp = Math.max(1, Math.ceil(allRecs.length / PER_PAGE));
+  if(globalPage > tp) globalPage = tp;
+  const pageData = allRecs.slice((globalPage - 1) * PER_PAGE, globalPage * PER_PAGE);
+
+  el.globalPager.classList.toggle('hidden', tp <= 1);
+  el.gpText.textContent = `${globalPage} / ${tp}`;
+  el.gpPrev.disabled = globalPage === 1;
+  el.gpNext.disabled = globalPage === tp;
+
+  if(!allRecs.length) {
+    el.globalHistList.innerHTML = '<p class="empty-msg">全系統尚無紀錄</p>';
+  } else {
+    el.globalHistList.innerHTML = pageData.map(i => `
+      <div class="hist-item">
+        <div class="hist-info">
+          <div class="hist-date-row">
+            <span class="hist-date" style="color:var(--text); font-size:13px;">${i.fullDate} ${i.type==='checkin'?'✅':'❌'}</span>
+            <span class="hist-meta" style="color:var(--primary);">${i.type==='checkin'?i.hours+'h':'取消'}</span>
+          </div>
+          ${i.note ? `<div class="hist-note" style="color:var(--muted);">📝 ${i.note}</div>` : ''}
+          <div class="hist-meta" style="margin-top:4px; opacity:0.6;">期數起算：${fmtLabel(i.phaseStart)}</div>
+        </div>
       </div>
     `).join('');
   }
