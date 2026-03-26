@@ -79,6 +79,9 @@ h1 { font-size: 26px; font-weight: 800; }
 .hist-date { font-size: 14px; font-weight: 700; }
 .hist-meta { font-size: 11px; color: var(--muted); }
 .hist-note { font-size: 11px; color: var(--primary); opacity: 0.85; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-class-note { font-size: 11px; color: #cbd5e1; margin-top: 4px; opacity: 0.9; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hist-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.mini-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; }
 .del-btn { background: rgba(239,68,68,0.1); color: var(--danger); border: none; width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; flex-shrink: 0; }
 .empty-msg { text-align: center; color: var(--muted); padding: 30px 0; font-style: italic; font-size: 13px; }
 .pager { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; }
@@ -92,7 +95,12 @@ h1 { font-size: 26px; font-weight: 800; }
 .input-wrap { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
 .input-wrap input { background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 14px; width: 100%; }
 .input-wrap input:focus { outline: none; }
+.input-wrap textarea { background: transparent; border: none; color: var(--text); font-family: inherit; font-size: 14px; width: 100%; min-height: 90px; resize: vertical; }
+.input-wrap textarea:focus { outline: none; }
 .autofill-icon { font-size: 13px; opacity: 0.5; }
+.field-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.tiny-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 5px 9px; font-size: 11px; cursor: pointer; }
+.tiny-btn:active { opacity: 0.7; }
 .dur-row { display: flex; gap: 8px; margin: 12px 0; }
 .dur-row input[type=radio] { display: none; }
 .dur-row label { flex: 1; text-align: center; padding: 13px; border: 1px solid var(--border); border-radius: 13px; font-weight: 700; font-size: 14px; background: rgba(255,255,255,0.04); cursor: pointer; }
@@ -100,6 +108,10 @@ h1 { font-size: 26px; font-weight: 800; }
 .confirm-btn { width: 100%; padding: 15px; background: var(--primary); color: #111; border: none; border-radius: 15px; font-weight: 800; font-size: 16px; cursor: pointer; font-family: inherit; box-shadow: 0 5px 18px var(--primary-glow); }
 .confirm-btn:active { transform: scale(0.98); }
 .cancel-link { width: 100%; background: none; border: none; color: var(--muted); font-size: 12px; margin-top: 12px; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
+.sync-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 14px; padding: 10px 12px; margin-bottom: 14px; font-size: 11px; color: #fecaca; line-height: 1.45; }
+.sync-banner.hidden { display: none !important; }
+.sync-status { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
 /* MODAL */
 .hidden { display: none !important; }
@@ -127,12 +139,19 @@ h1 { font-size: 26px; font-weight: 800; }
       <span class="badge">🎾 網球課程紀錄</span>
       <div class="header-actions">
         <button class="icon-btn" id="btn-import">📅 匯入備註</button>
+        <button class="icon-btn" id="btn-cloud" title="新試算表 Web App 網址">☁️ 雲端</button>
         <button class="icon-btn court-btn" id="btn-court">🏟️ 場地</button>
       </div>
     </div>
     <h1>網球課程紀錄</h1>
     <p class="today-date" id="today-label">載入中...</p>
+    <p class="sync-status" id="sync-status"></p>
   </header>
+
+  <div class="sync-banner hidden" id="sync-banner">
+    <span id="sync-banner-text">尚未設定新試算表的 Web App 網址，資料只會存在這台裝置。</span>
+    <button type="button" class="icon-btn" id="btn-sync-setup" style="flex-shrink:0;">設定網址</button>
+  </div>
 
   <!-- MAIN PHASE + HISTORY CARD -->
   <div class="card" id="phase-card">
@@ -193,6 +212,13 @@ h1 { font-size: 26px; font-weight: 800; }
         <input type="text" id="inp-note" placeholder="可手動修改">
       </div>
     </div>
+    <div class="field">
+      <div class="field-row">
+        <label class="field-label" style="margin-bottom:0;">上課備註 / 心得（不限字數）</label>
+        <button class="tiny-btn" id="btn-note-modal" type="button">📝 大段編輯</button>
+      </div>
+      <div class="input-wrap"><textarea id="inp-class-note" placeholder="可輸入上課心得、重點、下次要練習內容"></textarea></div>
+    </div>
     <div class="dur-row">
       <input type="radio" name="dur" id="h1" value="1">
       <label for="h1">1 小時</label>
@@ -221,7 +247,7 @@ h1 { font-size: 26px; font-weight: 800; }
   </div>
 
   <p style="text-align:center;font-size:10px;color:rgba(148,163,184,0.3);margin-top:20px;">
-    Tennis Tracker v5-sheet · localStorage + Google Sheet（POST 使用 text/plain 以避免 CORS 預檢失敗）
+    Tennis Tracker v5-sheet2 · Web App 網址存於本機 · Google Sheet 同步（POST 使用 text/plain）
   </p>
 </div>
 
@@ -234,7 +260,7 @@ h1 { font-size: 26px; font-weight: 800; }
       <input type="text" id="m-input" class="modal-input" placeholder="請輸入...">
     </div>
     <div id="m-textarea-wrap" class="hidden">
-      <p class="modal-hint">請貼上場地預約資訊（支援格式 MM/DD 備註）：</p>
+      <p class="modal-hint" id="m-textarea-hint">請貼上場地預約資訊（支援格式 MM/DD 備註）：</p>
       <textarea id="m-textarea" class="modal-textarea" placeholder="例如:&#10;03/24(二) 20-21第3面&#10;03/24 21-22第4面"></textarea>
     </div>
     <div class="modal-btns">
@@ -248,12 +274,64 @@ h1 { font-size: 26px; font-weight: 800; }
 // ─── CONFIG ────────────────────────────────────────────────
 const KEY      = 'tennis_v4_6_data';   // shared with index.html
 const OLD_KEY  = 'tennis_v4_5_stable_final_data';
-const DB_URL   = 'https://script.google.com/macros/s/AKfycbxG6Gk3whJHW5Ek4DSyW1gZnIM--euOV5ZQp7n7c8rv4Ja6H28Jwh8nC4Vbj-gAHg88IQ/exec';
+const WEBAPP_URL_KEY = 'tennis_sheet_webapp_url';
+const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzJou72gXVoFhwOydyEA0i0v509liHXD_PQXBqTnIU_OByx68KP5qWnqTKDGjy17vMvAQ/exec';
 const MAX_H    = 10;
 const PER_PAGE = 10;
 
+function getWebAppUrl() {
+  const saved = (localStorage.getItem(WEBAPP_URL_KEY) || '').trim();
+  if (saved) return saved;
+  return (DEFAULT_WEBAPP_URL || '').trim();
+}
+
+function isUsableCloudPayload(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return false;
+  if (Array.isArray(p.history) && p.history.length > 0) return true;
+  if (p.currentPhaseStart) return true;
+  if (Array.isArray(p.phases) && p.phases.length > 0) return true;
+  return false;
+}
+
+function updateCloudUi() {
+  const custom = (localStorage.getItem(WEBAPP_URL_KEY) || '').trim();
+  const u = getWebAppUrl();
+  if (el.syncBanner) el.syncBanner.classList.toggle('hidden', !!u);
+  if (el.syncStatus) {
+    el.syncStatus.textContent = custom
+      ? '雲端：使用瀏覽器儲存的自訂 Web App 網址'
+      : '雲端：使用 tracker-sheet.html 內建的預設 Web App 網址';
+  }
+}
+
+function openCloudUrlSettings() {
+  openModal(
+    '設定新試算表 Web App 網址',
+    '在 Google 試算表 → 擴充功能 → Apps Script → 部署為網路應用程式後，複製以 /exec 結尾的網址貼在下方。\n\n留空並確定＝清除瀏覽器自訂網址，改回使用本 HTML 檔內建的預設網址。',
+    () => {
+      const v = el.mInput.value.trim();
+      if (!v) {
+        localStorage.removeItem(WEBAPP_URL_KEY);
+        updateCloudUi();
+        alert('已清除自訂網址，改回使用檔案內建預設 Web App。');
+        return;
+      }
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(\?.*)?$/i.test(v)) {
+        alert('網址格式請確認為：https://script.google.com/macros/s/.../exec');
+        return;
+      }
+      localStorage.setItem(WEBAPP_URL_KEY, v);
+      updateCloudUi();
+      alert('已儲存。將重新載入以從新資料庫讀取（若雲端尚無資料則沿用本機）。');
+      location.reload();
+    },
+    'input',
+    getWebAppUrl()
+  );
+}
+
 // ─── STATE ─────────────────────────────────────────────────
-let data = { currentPhaseStart:null, phases:[], history:[], courtDefault:'場地1', remarkSchedule:{} };
+let data = { currentPhaseStart:null, phases:[], history:[], courtDefault:'場地1', remarkSchedule:{}, schemaVersion:2 };
 let viewPhase = null;   // which phase the user is currently viewing (local, not saved)
 let page = 1;
 let globalPage = 1;
@@ -271,12 +349,13 @@ const el = {
   globalHistList:$('global-hist-list'), globalHistCount:$('global-hist-count'),
   globalPager:$('global-pager'), gpPrev:$('gp-prev'), gpNext:$('gp-next'), gpText:$('gp-text'),
   btnResetAll:$('btn-reset-all'),
-  formCard:$('form-card'), inpDate:$('inp-date'), inpNote:$('inp-note'),
-  autofillIcon:$('autofill-icon'), btnAdd:$('btn-add'), btnCancel:$('btn-cancel'),
-  btnImport:$('btn-import'), btnCourt:$('btn-court'), btnAddPhase:$('btn-add-phase'),
+  formCard:$('form-card'), inpDate:$('inp-date'), inpNote:$('inp-note'), inpClassNote:$('inp-class-note'),
+  autofillIcon:$('autofill-icon'), btnAdd:$('btn-add'), btnCancel:$('btn-cancel'), btnNoteModal:$('btn-note-modal'),
+  btnImport:$('btn-import'), btnCloud:$('btn-cloud'), btnCourt:$('btn-court'), btnAddPhase:$('btn-add-phase'),
+  syncBanner:$('sync-banner'), btnSyncSetup:$('btn-sync-setup'), syncStatus:$('sync-status'),
   modal:$('modal'), mTitle:$('m-title'), mBody:$('m-body'),
   mInputWrap:$('m-input-wrap'), mInput:$('m-input'),
-  mTextareaWrap:$('m-textarea-wrap'), mTextarea:$('m-textarea'),
+  mTextareaWrap:$('m-textarea-wrap'), mTextareaHint:$('m-textarea-hint'), mTextarea:$('m-textarea'),
   mOk:$('m-ok'), mCancel:$('m-cancel')
 };
 
@@ -295,6 +374,9 @@ async function init() {
   el.btnAdd.onclick = addRecord;
   el.btnCancel.onclick = logCancel;
   el.btnImport.onclick = openImport;
+  el.btnCloud.onclick = openCloudUrlSettings;
+  if (el.btnSyncSetup) el.btnSyncSetup.onclick = openCloudUrlSettings;
+  el.btnNoteModal.onclick = openClassNoteEditor;
   el.btnCourt.onclick = editCourt;
   el.btnAddPhase.onclick = addPastPhase;
   el.btnResetAll.onclick = resetAllData;
@@ -305,6 +387,7 @@ async function init() {
   el.mOk.onclick = () => { if(pendingCB) pendingCB(); closeModal(); };
   el.mCancel.onclick = closeModal;
 
+  updateCloudUi();
   render();
 }
 
@@ -334,12 +417,21 @@ function nextTuesdayFrom(dateStr) {
 
 async function load() {
   let raw = null;
-  try {
-    const res = await fetch(DB_URL);
-    const cloudRaw = await res.json();
-    if(cloudRaw) raw = typeof cloudRaw === 'string' ? cloudRaw : JSON.stringify(cloudRaw);
-  } catch(e) {
-    console.error('Cloud load failed, using local', e);
+  const url = getWebAppUrl();
+  if (url) {
+    try {
+      const res = await fetch(url);
+      const cloudRaw = await res.json();
+      let parsed = cloudRaw;
+      if (typeof cloudRaw === 'string') {
+        try { parsed = JSON.parse(cloudRaw); } catch (_) { parsed = null; }
+      }
+      if (isUsableCloudPayload(parsed)) {
+        raw = typeof cloudRaw === 'string' ? cloudRaw : JSON.stringify(cloudRaw);
+      }
+    } catch(e) {
+      console.error('Cloud load failed, using local', e);
+    }
   }
   
   if(!raw) {
@@ -354,6 +446,8 @@ async function load() {
       if(!data.courtDefault) data.courtDefault = '場地1';
       if(!data.remarkSchedule) data.remarkSchedule = {};
       if(!data.history) data.history = [];
+      if(!data.schemaVersion) data.schemaVersion = 2;
+      data.history.forEach(i => { if(typeof i.classNote !== 'string') i.classNote = ''; });
       // Migration: assign currentPhaseStart if missing
       if(!data.currentPhaseStart) {
         if(data.history.length>0) {
@@ -376,7 +470,9 @@ async function load() {
 }
 
 function syncPostSheet(bodyString) {
-  return fetch(DB_URL, {
+  const u = getWebAppUrl();
+  if (!u) return Promise.resolve(null);
+  return fetch(u, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: bodyString
@@ -385,7 +481,39 @@ function syncPostSheet(bodyString) {
 
 function save() {
   localStorage.setItem(KEY, JSON.stringify(data));
-  syncPostSheet(JSON.stringify(data)).catch(e => console.error('Cloud sync failed', e));
+  if (!getWebAppUrl()) return;
+  const sheetModel = buildSheetModel();
+  syncPostSheet(JSON.stringify({ ...data, sheetModel })).catch(e => console.error('Cloud sync failed', e));
+}
+
+function buildSheetModel() {
+  const recordsHeaders = ['id','fullDate','dateLabel','type','hours','courtNote','classNote','phaseStart','createdAt'];
+  const settingsHeaders = ['key','value'];
+  const recordsRows = data.history.map(i => [
+    i.id || '',
+    i.fullDate || '',
+    i.dateLabel || '',
+    i.type || '',
+    i.hours || 0,
+    i.note || '',
+    i.classNote || '',
+    i.phaseStart || '',
+    i.createdAt || Date.now()
+  ]);
+  const settingsRows = [
+    ['currentPhaseStart', data.currentPhaseStart || ''],
+    ['phases', JSON.stringify(sortedPhases())],
+    ['courtDefault', data.courtDefault || ''],
+    ['remarkSchedule', JSON.stringify(data.remarkSchedule || {})],
+    ['maxHours', String(MAX_H)]
+  ];
+  return {
+    version: 1,
+    sheets: {
+      records: { headers: recordsHeaders, rows: recordsRows },
+      settings: { headers: settingsHeaders, rows: settingsRows }
+    }
+  };
 }
 
 function retagAll() {
@@ -445,6 +573,8 @@ function openModal(title, body, cb, type='none', val='') {
   el.mInputWrap.classList.add('hidden');
   el.mTextareaWrap.classList.add('hidden');
   el.mInput.type = 'text';
+  el.mTextareaHint.textContent = '請輸入內容：';
+  el.mTextarea.placeholder = '';
   if(type==='input') { el.mInputWrap.classList.remove('hidden'); el.mInput.value=val; }
   if(type==='date')  { el.mInputWrap.classList.remove('hidden'); el.mInput.type='date'; el.mInput.value=val; }
   if(type==='textarea') { el.mTextareaWrap.classList.remove('hidden'); el.mTextarea.value=val; }
@@ -502,6 +632,16 @@ function openImport() {
     if(cnt>0) { data.remarkSchedule=sched; save(); autoFill(); alert(`成功匯入 ${cnt} 個日期的備註！`); }
     else alert('找不到有效的日期資訊（需包含 MM/DD 或 MM-DD）。');
   }, 'textarea');
+  el.mTextareaHint.textContent = '請貼上場地預約資訊（支援格式 MM/DD 備註）：';
+  el.mTextarea.placeholder = '例如:\n03/24(二) 20-21第3面\n03/24 21-22第4面';
+}
+
+function openClassNoteEditor() {
+  openModal('編輯上課備註 / 心得', '可輸入較長內容，會跟著該次紀錄一起保存。', () => {
+    el.inpClassNote.value = el.mTextarea.value;
+  }, 'textarea', el.inpClassNote.value || '');
+  el.mTextareaHint.textContent = '可輸入本次課程心得、教練提醒、下次練習重點：';
+  el.mTextarea.placeholder = '例如：\n1) 反手拍提早引拍\n2) 發球 toss 要再穩定\n3) 下次加強腳步與重心';
 }
 
 // ─── AUTO FILL ─────────────────────────────────────────────
@@ -534,6 +674,7 @@ function addRecord() {
     id: Date.now().toString(), fullDate:dateStr,
     dateLabel: dateStr.split('-').slice(1).join('/'),
     type:'checkin', hours:h, note:el.inpNote.value.trim(),
+    classNote: el.inpClassNote.value || '',
     phaseStart:data.currentPhaseStart, createdAt:Date.now()
   });
   sortHistory();
@@ -541,6 +682,7 @@ function addRecord() {
   page=1; globalPage=1; save();
   // Switch view to current phase so user sees their new record
   if(viewPhase!==data.currentPhaseStart){ viewPhase=data.currentPhaseStart; }
+  el.inpClassNote.value = '';
   render();
   alert('已成功加入紀錄！');
 }
@@ -552,11 +694,12 @@ function logCancel() {
     id:Date.now().toString(), fullDate:dateStr,
     dateLabel:dateStr.split('-').slice(1).join('/'),
     type:'cancel', hours:0, note:el.inpNote.value.trim()||'課程取消',
+    classNote: el.inpClassNote.value || '',
     phaseStart:data.currentPhaseStart, createdAt:Date.now()
   });
   sortHistory();
   retagAll();
-  page=1; globalPage=1; save(); render();
+  page=1; globalPage=1; save(); el.inpClassNote.value = ''; render();
 }
 
 // ─── RESET ALL ────────────────────────────────────────────
@@ -619,6 +762,20 @@ window.askDelete = id => {
     data.history = data.history.filter(i=>i.id!==id);
     save(); render();
   });
+};
+
+window.askEdit = id => {
+  const rec = data.history.find(i => i.id === id);
+  if(!rec) return;
+  openModal('編輯這筆紀錄備註', '第一行是場地/備註，第二行開始是上課備註/心得。', () => {
+    const [first, ...rest] = el.mTextarea.value.split('\n');
+    rec.note = (first || '').trim();
+    rec.classNote = rest.join('\n').trim();
+    save();
+    render();
+  }, 'textarea', `${rec.note || ''}\n${rec.classNote || ''}`.trim());
+  el.mTextareaHint.textContent = '第一行是「場地/備註」，第二行開始是「上課備註/心得」：';
+  el.mTextarea.placeholder = '第1行：第3面\n第2行開始：今天反手拍有進步...';
 };
 
 // ─── RENDER ────────────────────────────────────────────────
@@ -702,8 +859,12 @@ function render() {
             <span class="hist-meta">${i.type==='checkin'?i.hours+'h':'取消'}</span>
           </div>
           ${i.note?`<div class="hist-note">📝 ${i.note}</div>`:''}
+          ${i.classNote?`<div class="hist-class-note">📚 ${i.classNote}</div>`:''}
         </div>
-        <button class="del-btn" onclick="askDelete('${i.id}')">🗑️</button>
+        <div class="hist-actions">
+          <button class="mini-btn" onclick="askEdit('${i.id}')" title="編輯備註">✏️</button>
+          <button class="del-btn" onclick="askDelete('${i.id}')" title="刪除">🗑️</button>
+        </div>
       </div>
     `).join('');
   }
@@ -734,7 +895,12 @@ function renderGlobalHistory() {
             <span class="hist-meta" style="color:var(--primary);">${i.type==='checkin'?i.hours+'h':'取消'}</span>
           </div>
           ${i.note ? `<div class="hist-note" style="color:var(--muted);">📝 ${i.note}</div>` : ''}
+          ${i.classNote ? `<div class="hist-class-note">📚 ${i.classNote}</div>` : ''}
           <div class="hist-meta" style="margin-top:4px; opacity:0.6;">期數起算：${fmtLabel(i.phaseStart)}</div>
+        </div>
+        <div class="hist-actions">
+          <button class="mini-btn" onclick="askEdit('${i.id}')" title="編輯備註">✏️</button>
+          <button class="del-btn" onclick="askDelete('${i.id}')" title="刪除">🗑️</button>
         </div>
       </div>
     `).join('');
