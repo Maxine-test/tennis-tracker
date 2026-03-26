@@ -41,9 +41,11 @@ h1 { font-size: 26px; font-weight: 800; }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 18px; margin-bottom: 14px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 
 /* PHASE SELECTOR */
-.phase-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.phase-row label { font-size: 11px; color: var(--muted); white-space: nowrap; }
-#phase-selector { flex: 1; background: rgba(0,0,0,0.35); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 12px; font-size: 13px; font-family: inherit; font-weight: 700; }
+.phase-block { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.phase-row-main { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; }
+.phase-row-main label { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+#phase-selector { flex: 1; min-width: 0; background: rgba(0,0,0,0.35); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 12px; font-size: 13px; font-family: inherit; font-weight: 700; }
+.phase-add-btn { width: 100%; box-sizing: border-box; }
 .term-date-row { font-size: 12px; color: var(--muted); margin-bottom: 14px; cursor: pointer; }
 .term-date-row u { color: var(--text); }
 .ended-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; margin-bottom: 12px; }
@@ -111,7 +113,6 @@ h1 { font-size: 26px; font-weight: 800; }
 
 .sync-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); border-radius: 14px; padding: 10px 12px; margin-bottom: 14px; font-size: 11px; color: #fecaca; line-height: 1.45; }
 .sync-banner.hidden { display: none !important; }
-.sync-status { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
 /* MODAL */
 .hidden { display: none !important; }
@@ -145,7 +146,6 @@ h1 { font-size: 26px; font-weight: 800; }
     </div>
     <h1>網球課程紀錄</h1>
     <p class="today-date" id="today-label">載入中...</p>
-    <p class="sync-status" id="sync-status"></p>
   </header>
 
   <div class="sync-banner hidden" id="sync-banner">
@@ -156,10 +156,12 @@ h1 { font-size: 26px; font-weight: 800; }
   <!-- MAIN PHASE + HISTORY CARD -->
   <div class="card" id="phase-card">
     <!-- Phase Selector -->
-    <div class="phase-row">
-      <label>課程期數：</label>
-      <select id="phase-selector"><option value="">載入中...</option></select>
-      <button class="icon-btn" id="btn-add-phase" title="新增過去期數">＋ 新增期數</button>
+    <div class="phase-block">
+      <div class="phase-row-main">
+        <label for="phase-selector">課程期數：</label>
+        <select id="phase-selector"><option value="">載入中...</option></select>
+      </div>
+      <button type="button" class="icon-btn phase-add-btn" id="btn-add-phase" title="新增過去期數">＋ 新增期數</button>
     </div>
 
     <!-- Term start date (editable only for current phase) -->
@@ -294,14 +296,8 @@ function isUsableCloudPayload(p) {
 }
 
 function updateCloudUi() {
-  const custom = (localStorage.getItem(WEBAPP_URL_KEY) || '').trim();
   const u = getWebAppUrl();
   if (el.syncBanner) el.syncBanner.classList.toggle('hidden', !!u);
-  if (el.syncStatus) {
-    el.syncStatus.textContent = custom
-      ? '雲端：使用瀏覽器儲存的自訂 Web App 網址'
-      : '雲端：使用 tracker-sheet.html 內建的預設 Web App 網址';
-  }
 }
 
 function openCloudUrlSettings() {
@@ -352,7 +348,7 @@ const el = {
   formCard:$('form-card'), inpDate:$('inp-date'), inpNote:$('inp-note'), inpClassNote:$('inp-class-note'),
   autofillIcon:$('autofill-icon'), btnAdd:$('btn-add'), btnCancel:$('btn-cancel'), btnNoteModal:$('btn-note-modal'),
   btnImport:$('btn-import'), btnCloud:$('btn-cloud'), btnCourt:$('btn-court'), btnAddPhase:$('btn-add-phase'),
-  syncBanner:$('sync-banner'), btnSyncSetup:$('btn-sync-setup'), syncStatus:$('sync-status'),
+  syncBanner:$('sync-banner'), btnSyncSetup:$('btn-sync-setup'),
   modal:$('modal'), mTitle:$('m-title'), mBody:$('m-body'),
   mInputWrap:$('m-input-wrap'), mInput:$('m-input'),
   mTextareaWrap:$('m-textarea-wrap'), mTextareaHint:$('m-textarea-hint'), mTextarea:$('m-textarea'),
