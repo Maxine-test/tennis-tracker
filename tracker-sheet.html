@@ -128,6 +128,111 @@ h1 { font-size: 26px; font-weight: 800; }
 .mbtn { flex: 1; padding: 15px; border-radius: 13px; font-weight: 800; font-size: 14px; border: none; cursor: pointer; font-family: inherit; }
 .mbtn-ok { background: var(--primary); color: #111; }
 .mbtn-cancel { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); }
+
+/* ── 打球前必看 BUTTON ─────────────────────────────── */
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+.title-row h1 { font-size: 26px; font-weight: 800; flex: 1; min-width: 0; }
+.pre-game-btn {
+  background: linear-gradient(135deg, rgba(192,215,37,0.18), rgba(192,215,37,0.06));
+  border: 1.5px solid rgba(192,215,37,0.5);
+  color: var(--primary);
+  padding: 8px 13px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(192,215,37,0.1);
+}
+.pre-game-btn:active { transform: scale(0.96); opacity: 0.85; }
+
+/* ── 打球前必看 PANEL ──────────────────────────────── */
+.notes-panel {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.notes-panel.hidden { display: none; }
+.notes-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: rgba(15,23,42,0.97);
+  backdrop-filter: blur(20px);
+}
+.notes-panel-header h2 { font-size: 19px; font-weight: 800; color: var(--primary); }
+.notes-close-btn {
+  background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 10px;
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.notes-close-btn:active { opacity: 0.7; }
+.notes-panel-content {
+  flex: 1; overflow-y: auto;
+  padding: 18px 16px 50px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.notes-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  backdrop-filter: blur(20px);
+}
+.notes-section-title {
+  font-size: 13px; font-weight: 800; color: var(--text);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.notes-section-title .sec-badge {
+  font-size: 10px; font-weight: 700; color: var(--primary);
+  background: rgba(192,215,37,0.12); border: 1px solid rgba(192,215,37,0.3);
+  border-radius: 8px; padding: 2px 8px;
+}
+.personal-notes-area {
+  width: 100%; min-height: 180px;
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text); font-family: inherit;
+  font-size: 14px; padding: 13px; resize: vertical; line-height: 1.75;
+}
+.personal-notes-area:focus { outline: none; border-color: rgba(192,215,37,0.45); }
+.personal-notes-area::placeholder { color: rgba(148,163,184,0.45); }
+.save-notes-row { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
+.save-notes-btn {
+  flex: 1; padding: 12px;
+  background: var(--primary); color: #111;
+  border: none; border-radius: 12px;
+  font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit;
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+.save-notes-btn:active { transform: scale(0.98); }
+.save-status { font-size: 11px; color: var(--primary); font-weight: 700; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+.save-status.show { opacity: 1; }
+.auto-summary-list { display: flex; flex-direction: column; gap: 7px; }
+.summary-item {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 11px 13px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.summary-bullet { color: var(--primary); font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
+.summary-body { flex: 1; min-width: 0; }
+.summary-text { font-size: 13px; line-height: 1.65; color: var(--text); word-break: break-word; }
+.summary-date { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.summary-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 28px 0; font-style: italic; }
+.summary-refresh-btn {
+  width: 100%; padding: 10px; margin-top: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 12px; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.summary-refresh-btn:hover { background: rgba(192,215,37,0.07); border-color: var(--primary); color: var(--primary); }
 </style>
 </head>
 <body>
@@ -144,7 +249,10 @@ h1 { font-size: 26px; font-weight: 800; }
         <button class="icon-btn court-btn" id="btn-court">🏟️ 場地</button>
       </div>
     </div>
-    <h1>網球課程紀錄</h1>
+    <div class="title-row">
+      <h1>網球課程紀錄</h1>
+      <button class="pre-game-btn" id="btn-pre-game">🎯 打球前必看</button>
+    </div>
     <p class="today-date" id="today-label">載入中...</p>
   </header>
 
@@ -253,6 +361,43 @@ h1 { font-size: 26px; font-weight: 800; }
   </p>
 </div>
 
+<!-- PRE-GAME NOTES PANEL -->
+<div class="notes-panel hidden" id="notes-panel">
+  <div class="notes-panel-header">
+    <h2>🎯 打球前必看</h2>
+    <button class="notes-close-btn" id="btn-notes-close">✕</button>
+  </div>
+  <div class="notes-panel-content">
+
+    <!-- Section 1: 個人筆記 -->
+    <div class="notes-section">
+      <div class="notes-section-title">
+        📝 我的筆記
+        <span class="sec-badge">可自由編輯</span>
+      </div>
+      <textarea id="personal-notes" class="personal-notes-area"
+        placeholder="在這裡寫下你的個人重點、目標、技術提醒...&#10;&#10;例如：&#10;・反手拍提早引拍、重心放低&#10;・發球 toss 位置固定，往前上方拋&#10;・上網截擊眼睛盯球，不要猜方向"></textarea>
+      <div class="save-notes-row">
+        <button class="save-notes-btn" id="btn-save-personal-notes">💾 儲存筆記</button>
+        <span class="save-status" id="save-status">✓ 已儲存</span>
+      </div>
+    </div>
+
+    <!-- Section 2: 自動彙整 -->
+    <div class="notes-section">
+      <div class="notes-section-title">
+        🤖 上課重點自動彙整
+        <span class="sec-badge">不重複 · 最新優先</span>
+      </div>
+      <div id="auto-summary-list" class="auto-summary-list">
+        <p class="summary-empty">尚無上課筆記可彙整</p>
+      </div>
+      <button class="summary-refresh-btn" id="btn-refresh-summary">🔄 重新整理彙整</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- MODAL -->
 <div class="modal hidden" id="modal">
   <div class="modal-box">
@@ -327,7 +472,7 @@ function openCloudUrlSettings() {
 }
 
 // ─── STATE ─────────────────────────────────────────────────
-let data = { currentPhaseStart:null, phases:[], history:[], courtDefault:'場地1', remarkSchedule:{}, schemaVersion:2 };
+let data = { currentPhaseStart:null, phases:[], history:[], courtDefault:'場地1', remarkSchedule:{}, preGameNotes:'', schemaVersion:2 };
 let viewPhase = null;   // which phase the user is currently viewing (local, not saved)
 let page = 1;
 let globalPage = 1;
@@ -352,7 +497,10 @@ const el = {
   modal:$('modal'), mTitle:$('m-title'), mBody:$('m-body'),
   mInputWrap:$('m-input-wrap'), mInput:$('m-input'),
   mTextareaWrap:$('m-textarea-wrap'), mTextareaHint:$('m-textarea-hint'), mTextarea:$('m-textarea'),
-  mOk:$('m-ok'), mCancel:$('m-cancel')
+  mOk:$('m-ok'), mCancel:$('m-cancel'),
+  btnPreGame:$('btn-pre-game'), notesPanel:$('notes-panel'), btnNotesClose:$('btn-notes-close'),
+  personalNotes:$('personal-notes'), btnSavePersonalNotes:$('btn-save-personal-notes'),
+  saveStatus:$('save-status'), autoSummaryList:$('auto-summary-list'), btnRefreshSummary:$('btn-refresh-summary')
 };
 
 // ─── INIT ────────────────────────────────────────────────────
@@ -382,6 +530,11 @@ async function init() {
   el.gpNext.onclick = () => { if(globalPage<Math.max(1, Math.ceil(data.history.length/PER_PAGE))){globalPage++;renderGlobalHistory();} };
   el.mOk.onclick = () => { if(pendingCB) pendingCB(); closeModal(); };
   el.mCancel.onclick = closeModal;
+
+  el.btnPreGame.onclick = openNotesPanel;
+  el.btnNotesClose.onclick = closeNotesPanel;
+  el.btnSavePersonalNotes.onclick = savePersonalNotes;
+  el.btnRefreshSummary.onclick = renderAutoSummary;
 
   updateCloudUi();
   render();
@@ -444,6 +597,7 @@ async function load() {
       if(!data.history) data.history = [];
       if(!data.schemaVersion) data.schemaVersion = 2;
       data.history.forEach(i => { if(typeof i.classNote !== 'string') i.classNote = ''; });
+      if(typeof data.preGameNotes !== 'string') data.preGameNotes = '';
       // Migration: assign currentPhaseStart if missing
       if(!data.currentPhaseStart) {
         if(data.history.length>0) {
@@ -501,6 +655,7 @@ function buildSheetModel() {
     ['phases', JSON.stringify(sortedPhases())],
     ['courtDefault', data.courtDefault || ''],
     ['remarkSchedule', JSON.stringify(data.remarkSchedule || {})],
+    ['preGameNotes', data.preGameNotes || ''],
     ['maxHours', String(MAX_H)]
   ];
   return {
@@ -901,6 +1056,68 @@ function renderGlobalHistory() {
       </div>
     `).join('');
   }
+}
+
+// ─── PRE-GAME NOTES ────────────────────────────────────────
+function openNotesPanel() {
+  el.personalNotes.value = data.preGameNotes || '';
+  el.notesPanel.classList.remove('hidden');
+  renderAutoSummary();
+  el.personalNotes.focus();
+}
+
+function closeNotesPanel() {
+  el.notesPanel.classList.add('hidden');
+}
+
+function savePersonalNotes() {
+  data.preGameNotes = el.personalNotes.value;
+  save();
+  el.saveStatus.classList.add('show');
+  setTimeout(() => el.saveStatus.classList.remove('show'), 2000);
+}
+
+function buildAutoSummary() {
+  const checkins = data.history
+    .filter(i => i.type === 'checkin' && i.classNote && i.classNote.trim())
+    .sort((a, b) => b.fullDate.localeCompare(a.fullDate));
+
+  const seenNorm = new Set();
+  const points = [];
+
+  checkins.forEach(rec => {
+    const lines = rec.classNote.split('\n');
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      const clean = trimmed.replace(/^[\d]+[\.\)、]\s*/, '').replace(/^[\-\*\•·\◆]\s*/, '').trim();
+      if (!clean || clean.length < 2) return;
+      const normalized = clean.toLowerCase().replace(/\s+/g, ' ');
+      if (!seenNorm.has(normalized)) {
+        seenNorm.add(normalized);
+        points.push({ text: clean, date: rec.fullDate, dateLabel: rec.dateLabel || rec.fullDate.slice(5).replace('-','/') });
+      }
+    });
+  });
+
+  return points;
+}
+
+function renderAutoSummary() {
+  const points = buildAutoSummary();
+  if (!points.length) {
+    el.autoSummaryList.innerHTML = '<p class="summary-empty">還沒有上課筆記紀錄。<br>每次上課後填入心得，這裡會自動整理不重複的重點！</p>';
+    return;
+  }
+  el.autoSummaryList.innerHTML = points.map((p, i) => `
+    <div class="summary-item">
+      <span class="summary-bullet">${String(i+1).padStart(2,'0')}</span>
+      <div class="summary-body">
+        <div class="summary-text">${p.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        <div class="summary-date">最近出現：${p.dateLabel}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 // Input events
