@@ -505,9 +505,7 @@ const el = {
 
 // ─── INIT ────────────────────────────────────────────────────
 async function init() {
-  document.body.style.opacity = '0.5';
-  await load();
-  document.body.style.opacity = '1';
+  loadLocal();                // 立即從 localStorage 讀取，不等雲端
   viewPhase = data.currentPhaseStart;
   updateClock();
   setDefaultDate();
@@ -538,6 +536,7 @@ async function init() {
 
   updateCloudUi();
   render();
+  syncFromCloud();            // 背景靜默抓雲端，有更新再重繪
 }
 
 // ─── CLOCK ─────────────────────────────────────────────────
@@ -577,59 +576,66 @@ function nextTuesdayFrom(dateStr) {
   return isoDate(d);
 }
 
-async function load() {
-  let raw = null;
-  const url = getWebAppUrl();
-  if (url) {
-    try {
-      const res = await fetch(url);
-      const cloudRaw = await res.json();
-      let parsed = cloudRaw;
-      if (typeof cloudRaw === 'string') {
-        try { parsed = JSON.parse(cloudRaw); } catch (_) { parsed = null; }
-      }
-      if (isUsableCloudPayload(parsed)) {
-        raw = typeof cloudRaw === 'string' ? cloudRaw : JSON.stringify(cloudRaw);
-      }
-    } catch(e) {
-      console.error('Cloud load failed, using local', e);
+function applyParsedData(parsed) {
+  data = parsed;
+  if(!data.phases) data.phases = [];
+  if(!data.courtDefault) data.courtDefault = '場地1';
+  if(!data.remarkSchedule) data.remarkSchedule = {};
+  if(!data.history) data.history = [];
+  if(!data.schemaVersion) data.schemaVersion = 2;
+  data.history.forEach(i => { if(typeof i.classNote !== 'string') i.classNote = ''; });
+  if(typeof data.preGameNotes !== 'string') data.preGameNotes = '';
+  if(!data.currentPhaseStart) {
+    if(data.history.length > 0) {
+      data.currentPhaseStart = [...data.history].sort((a,b)=>a.fullDate.localeCompare(b.fullDate))[0].fullDate;
+    } else {
+      data.currentPhaseStart = todayStr();
     }
+    if(!data.phases.includes(data.currentPhaseStart)) data.phases.push(data.currentPhaseStart);
+    data.phases.sort();
   }
-  
-  if(!raw) {
-    raw = localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY);
-  }
+  sortHistory();
+  retagAll();
+}
 
-  if(raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      data = parsed;
-      if(!data.phases) data.phases = [];
-      if(!data.courtDefault) data.courtDefault = '場地1';
-      if(!data.remarkSchedule) data.remarkSchedule = {};
-      if(!data.history) data.history = [];
-      if(!data.schemaVersion) data.schemaVersion = 2;
-      data.history.forEach(i => { if(typeof i.classNote !== 'string') i.classNote = ''; });
-      if(typeof data.preGameNotes !== 'string') data.preGameNotes = '';
-      // Migration: assign currentPhaseStart if missing
-      if(!data.currentPhaseStart) {
-        if(data.history.length>0) {
-          data.currentPhaseStart = [...data.history].sort((a,b)=>a.fullDate.localeCompare(b.fullDate))[0].fullDate;
-        } else {
-          data.currentPhaseStart = todayStr();
-        }
-        if(!data.phases.includes(data.currentPhaseStart)) data.phases.push(data.currentPhaseStart);
-        data.phases.sort();
-      }
-      sortHistory(); // Ensure loaded records are sorted
-      // Tag untagged records
-      retagAll();
-    } catch(e){}
+function loadLocal() {
+  // 立即從 localStorage 讀取，讓畫面可以馬上顯示
+  const raw = localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY);
+  if (raw) {
+    try { applyParsedData(JSON.parse(raw)); } catch(e) {}
   } else {
     data.currentPhaseStart = todayStr();
     data.phases = [data.currentPhaseStart];
   }
-  localStorage.setItem(KEY, JSON.stringify(data)); // cache locally
+}
+
+async function syncFromCloud() {
+  // 背景靜默抓雲端資料；若雲端紀錄比本機多，才更新畫面
+  const url = getWebAppUrl();
+  if (!url) return;
+  try {
+    const res = await fetch(url);
+    const cloudRaw = await res.json();
+    let parsed = cloudRaw;
+    if (typeof cloudRaw === 'string') {
+      try { parsed = JSON.parse(cloudRaw); } catch(_) { parsed = null; }
+    }
+    if (!isUsableCloudPayload(parsed)) return;
+
+    const cloudCount = Array.isArray(parsed.history) ? parsed.history.length : 0;
+    const localCount = data.history.length;
+
+    // 雲端有更多紀錄（其他裝置新增過），或本機尚無資料 → 以雲端為準
+    if (cloudCount > localCount || localCount === 0) {
+      applyParsedData(parsed);
+      localStorage.setItem(KEY, JSON.stringify(data)); // 更新本機快取
+      if (!data.phases.includes(viewPhase)) viewPhase = data.currentPhaseStart;
+      setDefaultDate();
+      render();
+    }
+  } catch(e) {
+    console.error('Background cloud sync failed', e);
+  }
 }
 
 function syncPostSheet(bodyString) {
